@@ -22,7 +22,7 @@ const getMiddleware = () => {
   return middleware;
 }
 
-const store = createStore(reducer, 
+const store = createStore(reducer,
   compose(
     applyMiddleware( 
       ...getMiddleware()

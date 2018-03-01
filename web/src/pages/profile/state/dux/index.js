@@ -2,4 +2,13 @@
 
 import initialState, { type $Profile } from 'pages/profile/state/initialState';
 
-export default (state: $Profile = initialState, action: *) => state
+import { ActionManager } from 'shared/ReduxShades'
+
+import increment from './increment'
+import incrementBy from './incrementBy'
+
+const manager = new ActionManager("Profile", initialState, {...increment}, {...incrementBy})
+
+export const profileActions = manager.actions
+
+export default (manager.reducer: (*, *) => *)

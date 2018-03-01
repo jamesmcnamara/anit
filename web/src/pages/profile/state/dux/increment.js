@@ -1,11 +1,11 @@
 // @flow
 
-export default actionManager.create({
-  help: 'increments',
-  type: 'INCREMENT',
-  creator: function increment(amt?: number = 0) { 
-    return this.action(amt)
-  },
-  reducer: amt => mod('counter')(add(amt)),
-})
+import { mod, add } from 'shades';
 
+export default {
+  increment: {
+    type: 'INCREMENT',
+    creator: (amt: number) => amt,
+    reducer: (amt: number) => mod('counter')(add(amt)),
+  }
+}
