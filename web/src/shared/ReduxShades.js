@@ -36,13 +36,20 @@ type Reset = {
   reset(): {type: string}
 }
 
-export class ActionManager<A: Object, Aliases: Object, S: Object> {
+type Config<Actions: Object, Aliases: Object, State> = {
+  name: string,
+  initialState: State,
+  actions: Actions,
+  aliases: ?Aliases,
+}
+
+export class ActionManager<Actions: Object, Aliases: Object, State> {
   name: string
-  initialState: S
-  actions: ToActions<A, S> & Setters<S> & Aliases & Reset
+  initialState: State
+  actions: ToActions<Actions, State> & Aliases & Setters<State> & Reset
   reducerObj: {[string]: Function}
 
-  constructor(name: string, initialState: S, actions: A, aliases: ?Aliases) {
+  constructor({name, initialState, actions, aliases}: Config<Actions, Aliases, State>) {
     this.reducerObj = _.transform(actions, (acc, {type, reducer}) =>
       acc[type] = reducer)
 
@@ -70,7 +77,7 @@ export class ActionManager<A: Object, Aliases: Object, S: Object> {
     return `Reset for ${this.name}`
   }
 
-  reducer = (_state: S, action: Action<A, S>): S  => {
+  reducer = (_state: State, action: Action<Actions, State>): State  => {
     const state = _state || this.initialState
     if (action && action.type) {
       if (action.type === this.setterType) {
