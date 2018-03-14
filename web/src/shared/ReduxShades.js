@@ -1,7 +1,7 @@
 /* @flow */
 
 import { compose } from 'redux';
-import { set } from 'shades';
+import { set, updateAll } from 'shades';
 
 import _ from 'lodash';
 
@@ -10,17 +10,16 @@ type ActionCreatorType<S> = <T1, T2, T3, T4, T5, P, T>($ActionTemplate<T1, T2, T
 type Action<A: Object, S> = $Values<$ObjMap<A, ActionCreatorType<S>>>
 
 
-type ExtractCreatorType<S> = <T1, T2, T3, T4, T5, P, T>($ActionTemplate<T1, T2, T3, T4, T5, P, S, T>) => ((T1, T2, T3, T4, T5) => {type: $ElementType<$ActionTemplate<T1, T2, T3, T4, T5, P, S, T>, "type">, payload: P})
+type ExtractCreatorType<S> = <T1, T2, T3, T4, T5, P, T: string>($ActionTemplate<T1, T2, T3, T4, T5, P, S, T>) => ((T1, T2, T3, T4, T5) => {type: $ElementType<$ActionTemplate<T1, T2, T3, T4, T5, P, S, T>, "type">, payload: P})
 type CreateSetter = <T>(T) => ((arg: T) => T)
 
-type $ActionTemplate<T1, T2, T3, T4, T5, P, S, T> = {
+type $ActionTemplate<T1, T2, T3, T4, T5, P, S, T: string> = {
   creator: (T1, T2, T3, T4, T5) => P,
   reducer: P => S => S,
   type: T,
 }
 
 const last = a => b => b
-
 const BATCH_TYPE = "Batch Action"
 
 export function batch<A>(...actions: A) {
@@ -30,18 +29,31 @@ export function batch<A>(...actions: A) {
   }
 }
 
-type ToActions<A, S> = $ObjMap<A, ExtractCreatorType<S>> 
+type ToActions<A, S> = $ObjMap<A, ExtractCreatorType<S>>
 type Setters<S> = {set: $ObjMap<S, CreateSetter>}
 type Reset = {
   reset(): {type: string}
 }
 
+opaque type Listener = {
+  type: string,
+  reducer: Function,
+}
+
 type Config<Actions: Object, Aliases: Object, State> = {
   name: string,
   initialState: State,
-  actions: Actions,
-  aliases: ?Aliases,
+  actions?: Actions,
+  aliases?: Aliases,
+  listeners?: Listener[], 
 }
+
+export const createListenerFor = <T1, T2, T3, T4, T5, P, S1, S2, T: string>(action: $ActionTemplate<T1, T2, T3, T4, T5, P, S1, T>, listener: P => S2 => S2): Listener => ({
+  type: action.type,
+  reducer: listener,
+})
+
+  
 
 export class ActionManager<Actions: Object, Aliases: Object, State> {
   name: string
@@ -49,9 +61,21 @@ export class ActionManager<Actions: Object, Aliases: Object, State> {
   actions: ToActions<Actions, State> & Aliases & Setters<State> & Reset
   reducerObj: {[string]: Function}
 
-  constructor({name, initialState, actions, aliases}: Config<Actions, Aliases, State>) {
+  constructor({name, initialState, actions, aliases, listeners}: Config<Actions, Aliases, State>) {
     this.reducerObj = _.transform(actions, (acc, {type, reducer}) =>
-      acc[type] = reducer)
+      acc[type] = reducer, {})
+    
+     _.forEach(listeners, ({type, reducer}) => {
+       let oldReducer
+       if (oldReducer = this.reducerObj[type]) {
+         this.reducerObj[type] = payload => updateAll(
+              oldReducer(payload),
+              reducer(payload),
+         ) 
+       } else {
+         this.reducerObj[type] = reducer
+       }
+    })
 
     this.initialState = initialState
     this.actions = {

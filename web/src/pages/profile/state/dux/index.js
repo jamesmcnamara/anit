@@ -4,18 +4,22 @@ import initialState, { type $Profile } from 'pages/profile/state/initialState';
 
 import { ActionManager } from 'shared/ReduxShades'
 
-import increment from './increment'
+import { increment } from './increment'
 import incrementBy from './incrementBy'
+import onIncrement from './onIncrement'
 
 const manager = new ActionManager({
   name: "Profile", 
   initialState, 
   actions: {
-    ...increment,
+    increment,
   }, 
   aliases: {
-    ...incrementBy,
-  }
+    incrementBy,
+  },
+  listeners: [ 
+    onIncrement,
+  ] 
 })
 
 export const profileActions = manager.actions
